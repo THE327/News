@@ -36,8 +36,6 @@ public class NewsItem {
 
     public NewsItem(int id, String type, String by, long time,
                     String title, String url, int score, int descendants) {
-    public NewsItem(int id, String type, String by, long time,
-                    String title, String url, int score, int descendants) {
         this.id          = id;
         this.type        = type;
         this.by          = by;

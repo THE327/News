@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private Button btnLoad;
     private SwipeRefreshLayout swipeRefresh;
+    private View emptyView;
 
     private NewsAdapter newsAdapter;
     private OkHttpClient okHttpClient;
@@ -48,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String BASE_URL = "https://hacker-news.firebaseio.com/v0/";
     private static final String TOPSTORIES_URL = BASE_URL + "topstories.json";
     private static final String ITEM_URL = BASE_URL + "item/";
+    private static final String COMMENTS_URL = "https://news.ycombinator.com/item?id=";
     private static final int FETCH_COUNT = 10;
 
     @Override
@@ -70,27 +72,50 @@ public class MainActivity extends AppCompatActivity {
 
         setupRecyclerView();
         setupSwipeRefresh();
+        showEmpty(true);
 
         btnLoad.setOnClickListener(v -> loadNews());
     }
 
     private void setupRecyclerView() {
-        newsAdapter = new NewsAdapter(this, new ArrayList<>(), this::openUrl);
+        newsAdapter = new NewsAdapter(this, new ArrayList<>(), this::onNewsItemClick);
         rvNews.setLayoutManager(new LinearLayoutManager(this));
         rvNews.setAdapter(newsAdapter);
     }
 
     private void setupSwipeRefresh() {
         swipeRefresh.setColorSchemeResources(R.color.hn_orange);
-        swipeRefresh.setOnRefreshListener(() -> {
-            loadNews();
-        });
+        swipeRefresh.setOnRefreshListener(this::loadNews);
     }
 
-    private void openUrl(String url) {
+    private void showEmpty(boolean show) {
+        rvNews.setVisibility(show ? View.GONE : View.VISIBLE);
+        // Use SwipeRefreshLayout as the empty view container
+        if (show) {
+            // Remove any previous empty view
+            View existing = swipeRefresh.findViewById(R.id.empty_container);
+            if (existing != null) {
+                swipeRefresh.removeView(existing);
+            }
+            View empty = getLayoutInflater().inflate(R.layout.layout_empty, swipeRefresh, false);
+            empty.setId(R.id.empty_container);
+            swipeRefresh.addView(empty);
+        } else {
+            View existing = swipeRefresh.findViewById(R.id.empty_container);
+            if (existing != null) {
+                swipeRefresh.removeView(existing);
+            }
+        }
+    }
+
+    private void onNewsItemClick(NewsItem item) {
+        String url = item.getUrl();
         if (url != null && !url.isEmpty()) {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            startActivity(intent);
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } else {
+            // Self-post (Ask HN, etc.) — open HN comments page
+            startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse(COMMENTS_URL + item.getId())));
         }
     }
 
@@ -188,6 +213,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     tvCount.setText(String.valueOf(finalNewsList.size()));
                     tvStatus.setText("Updated just now");
+                    showEmpty(finalNewsList.isEmpty());
                     newsAdapter.updateData(finalNewsList);
                 }
             });

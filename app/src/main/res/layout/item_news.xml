@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- News item card with Hacker News style -->
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,7 +10,8 @@
     app:cardBackgroundColor="@color/bg_card"
     app:cardElevation="1dp"
     app:cardCornerRadius="10dp"
-    app:strokeWidth="0dp">
+    app:strokeWidth="0dp"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,13 +19,17 @@
         android:orientation="horizontal"
         android:padding="14dp">
 
-        <!-- Score badge on the left -->
+        <!-- Score badge -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:paddingEnd="12dp">
+            android:paddingEnd="12dp"
+            android:minWidth="40dp"
+            android:background="@color/score_badge_bg"
+            android:paddingVertical="6dp"
+            android:paddingHorizontal="8dp">
 
             <TextView
                 android:id="@+id/tv_score"
@@ -40,24 +44,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="pts"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:textColor="@color/text_hint" />
 
         </LinearLayout>
-
-        <!-- Divider -->
-        <View
-            android:layout_width="1dp"
-            android:layout_height="match_parent"
-            android:background="@color/bg_divider"
-            android:layout_marginEnd="12dp" />
 
         <!-- Main content -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
 
             <!-- Title -->
             <TextView
@@ -81,6 +79,7 @@
                 android:textSize="11sp"
                 android:textColor="@color/domain_text"
                 android:background="@drawable/bg_domain_tag"
+                android:visibility="gone"
                 tools:text="github.com" />
 
             <!-- Meta info row -->
@@ -91,7 +90,6 @@
                 android:layout_marginTop="8dp"
                 android:gravity="center_vertical">
 
-                <!-- Author -->
                 <TextView
                     android:id="@+id/tv_by"
                     android:layout_width="wrap_content"
@@ -107,7 +105,6 @@
                     android:layout_marginHorizontal="8dp"
                     android:background="@drawable/bg_dot" />
 
-                <!-- Time -->
                 <TextView
                     android:id="@+id/tv_time"
                     android:layout_width="wrap_content"
@@ -122,7 +119,6 @@
                     android:layout_marginHorizontal="8dp"
                     android:background="@drawable/bg_dot" />
 
-                <!-- Comments -->
                 <TextView
                     android:id="@+id/tv_descendants"
                     android:layout_width="wrap_content"

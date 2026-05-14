@@ -62,7 +62,9 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsViewHolder
         holder.tvBy.setText("by " + news.getBy());
         holder.tvScore.setText(String.valueOf(news.getScore()));
         holder.tvTime.setText(getRelativeTime(news.getTime()));
-        holder.tvDescendants.setText(String.valueOf(news.getDescendants()));
+        holder.tvDescendants.setText(news.getDescendants() > 0
+                ? news.getDescendants() + " comments"
+                : "discuss");
 
         String domain = extractDomain(news.getUrl());
         holder.tvDomain.setText(domain);
