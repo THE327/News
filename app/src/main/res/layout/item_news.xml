@@ -116,6 +116,21 @@
                     android:textColor="@color/text_hint"
                     tools:text="2h ago" />
 
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="4dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:background="@drawable/bg_dot" />
+
+                <!-- Comments -->
+                <TextView
+                    android:id="@+id/tv_descendants"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    tools:text="128 comments" />
+
             </LinearLayout>
 
         </LinearLayout>

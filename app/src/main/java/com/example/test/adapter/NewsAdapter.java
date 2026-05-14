@@ -1,13 +1,10 @@
 package com.example.test.adapter;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -16,22 +13,27 @@ import com.example.test.R;
 import com.example.test.model.NewsItem;
 
 import java.net.URI;
-import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import com.google.android.material.card.MaterialCardView;
 
 public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsViewHolder> {
 
+    public interface OnItemClickListener {
+        void onItemClick(NewsItem item);
+    }
+
     private final Context context;
     private List<NewsItem> newsList;
+    private final OnItemClickListener listener;
 
-    public NewsAdapter(Context context, List<NewsItem> newsList) {
+    public NewsAdapter(Context context, List<NewsItem> newsList, OnItemClickListener listener) {
         this.context = context;
         this.newsList = newsList;
+        this.listener = listener;
     }
 
     public void updateData(List<NewsItem> newData) {
@@ -60,19 +62,15 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsViewHolder
         holder.tvBy.setText("by " + news.getBy());
         holder.tvScore.setText(String.valueOf(news.getScore()));
         holder.tvTime.setText(getRelativeTime(news.getTime()));
+        holder.tvDescendants.setText(String.valueOf(news.getDescendants()));
 
         String domain = extractDomain(news.getUrl());
         holder.tvDomain.setText(domain);
         holder.tvDomain.setVisibility(domain.isEmpty() ? View.GONE : View.VISIBLE);
 
         holder.card.setOnClickListener(v -> {
-            String url = news.getUrl();
-            if (url != null && !url.isEmpty()) {
-                ClipboardManager clipboard = (ClipboardManager)
-                        context.getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("URL", url);
-                clipboard.setPrimaryClip(clip);
-                Toast.makeText(context, url, Toast.LENGTH_SHORT).show();
+            if (listener != null) {
+                listener.onItemClick(news);
             }
         });
     }
@@ -104,6 +102,7 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsViewHolder
         TextView tvScore;
         TextView tvBy;
         TextView tvTime;
+        TextView tvDescendants;
 
         public NewsViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -113,6 +112,7 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsViewHolder
             tvScore = itemView.findViewById(R.id.tv_score);
             tvBy = itemView.findViewById(R.id.tv_by);
             tvTime = itemView.findViewById(R.id.tv_time);
+            tvDescendants = itemView.findViewById(R.id.tv_descendants);
         }
     }
 }
