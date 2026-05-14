@@ -63,9 +63,11 @@ public class MainActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progress_bar);
         btnLoad = findViewById(R.id.btn_load);
         swipeRefresh = findViewById(R.id.swipe_refresh);
+        emptyView = findViewById(R.id.empty_view);
 
         okHttpClient = new OkHttpClient.Builder()
-                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
                 .build();
         gson = new Gson();
@@ -89,23 +91,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showEmpty(boolean show) {
-        rvNews.setVisibility(show ? View.GONE : View.VISIBLE);
-        // Use SwipeRefreshLayout as the empty view container
-        if (show) {
-            // Remove any previous empty view
-            View existing = swipeRefresh.findViewById(R.id.empty_container);
-            if (existing != null) {
-                swipeRefresh.removeView(existing);
-            }
-            View empty = getLayoutInflater().inflate(R.layout.layout_empty, swipeRefresh, false);
-            empty.setId(R.id.empty_container);
-            swipeRefresh.addView(empty);
-        } else {
-            View existing = swipeRefresh.findViewById(R.id.empty_container);
-            if (existing != null) {
-                swipeRefresh.removeView(existing);
-            }
-        }
+        emptyView.setVisibility(show ? View.VISIBLE : View.GONE);
+        swipeRefresh.setVisibility(show ? View.GONE : View.VISIBLE);
     }
 
     private void onNewsItemClick(NewsItem item) {
@@ -113,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
         if (url != null && !url.isEmpty()) {
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         } else {
-            // Self-post (Ask HN, etc.) — open HN comments page
             startActivity(new Intent(Intent.ACTION_VIEW,
                     Uri.parse(COMMENTS_URL + item.getId())));
         }
@@ -145,55 +131,64 @@ public class MainActivity extends AppCompatActivity {
                         .url(TOPSTORIES_URL)
                         .build();
                 Response response = okHttpClient.newCall(request).execute();
+                if (!response.isSuccessful()) {
+                    errorMessage = "Server error: " + response.code();
+                    throw new IOException(errorMessage);
+                }
                 String idsJson = response.body().string();
 
                 Type listType = new TypeToken<List<Integer>>() {}.getType();
                 List<Integer> ids = gson.fromJson(idsJson, listType);
 
-                int count = Math.min(FETCH_COUNT, ids.size());
+                if (ids == null || ids.isEmpty()) {
+                    errorMessage = "No stories available";
+                } else {
+                    int count = Math.min(FETCH_COUNT, ids.size());
 
-                // Fisher-Yates partial shuffle for distinct random items
-                Random random = new Random();
-                List<Integer> sampledIds = new ArrayList<>(count);
-                for (int i = 0; i < count && i < ids.size(); i++) {
-                    int j = random.nextInt(ids.size());
-                    Collections.swap(ids, i, j);
-                    sampledIds.add(ids.get(i));
-                }
+                    Random random = new Random();
+                    List<Integer> sampledIds = new ArrayList<>(count);
+                    for (int i = 0; i < count; i++) {
+                        int j = random.nextInt(ids.size());
+                        Collections.swap(ids, i, j);
+                        sampledIds.add(ids.get(i));
+                    }
 
-                List<NewsItem> syncList =
-                        Collections.synchronizedList(new ArrayList<>());
-                CountDownLatch latch = new CountDownLatch(count);
-                ExecutorService executor = Executors.newFixedThreadPool(count);
+                    List<NewsItem> syncList =
+                            Collections.synchronizedList(new ArrayList<>());
+                    CountDownLatch latch = new CountDownLatch(count);
+                    ExecutorService executor = Executors.newFixedThreadPool(count);
 
-                postStatus("Loading " + sampledIds.size() + " stories in parallel...");
+                    postStatus("Loading " + sampledIds.size() + " stories...");
 
-                for (int i = 0; i < count; i++) {
-                    final int newsId = sampledIds.get(i);
-                    executor.submit(() -> {
-                        try {
-                            String itemUrl = ITEM_URL + newsId + ".json";
-                            Request itemRequest = new Request.Builder()
-                                    .url(itemUrl)
-                                    .build();
-                            Response itemResponse =
-                                    okHttpClient.newCall(itemRequest).execute();
-                            String itemJson = itemResponse.body().string();
-                            NewsItem news = gson.fromJson(itemJson, NewsItem.class);
-                            if (news != null && news.getTitle() != null) {
-                                syncList.add(news);
+                    for (int i = 0; i < count; i++) {
+                        final int newsId = sampledIds.get(i);
+                        executor.submit(() -> {
+                            try {
+                                String itemUrl = ITEM_URL + newsId + ".json";
+                                Request itemRequest = new Request.Builder()
+                                        .url(itemUrl)
+                                        .build();
+                                Response itemResponse =
+                                        okHttpClient.newCall(itemRequest).execute();
+                                if (itemResponse.isSuccessful()) {
+                                    String itemJson = itemResponse.body().string();
+                                    NewsItem news = gson.fromJson(itemJson, NewsItem.class);
+                                    if (news != null && news.getTitle() != null) {
+                                        syncList.add(news);
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            } finally {
+                                latch.countDown();
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        } finally {
-                            latch.countDown();
-                        }
-                    });
-                }
+                        });
+                    }
 
-                latch.await();
-                executor.shutdown();
-                newsList.addAll(syncList);
+                    latch.await();
+                    executor.shutdown();
+                    newsList.addAll(syncList);
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();

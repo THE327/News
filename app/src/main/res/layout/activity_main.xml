@@ -84,21 +84,30 @@
         app:cornerRadius="8dp"
         android:paddingVertical="12dp" />
 
-    <!-- SwipeRefreshLayout wrapping RecyclerView -->
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_refresh"
+    <!-- Content area: SwipeRefreshLayout + Empty state -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_news"
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:paddingHorizontal="12dp"
-            android:paddingBottom="8dp"
-            android:clipToPadding="false" />
+            android:layout_height="match_parent">
 
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_news"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingHorizontal="12dp"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false" />
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <!-- Empty state -->
+        <include layout="@layout/layout_empty" android:id="@+id/empty_view" />
+
+    </FrameLayout>
 
 </LinearLayout>
