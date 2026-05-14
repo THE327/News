@@ -1,0 +1,21 @@
+// ============================================================
+//  项目级 build.gradle —— 第4课新增说明
+// ============================================================
+//
+//  Android Studio 项目通常有两个 build.gradle 文件：
+//
+//    ① 项目级（本文件）：项目根目录下的 build.gradle
+//       作用：配置整个项目的通用设置
+//       一般不需要频繁修改
+//
+//    ② 模块级：app/build.gradle（← 第4课重点修改的文件）
+//       作用：配置 app 模块的编译选项和第三方依赖
+//       我们添加 OkHttp、Gson、Glide 都是在那里写
+//
+//  本文件一般不需要改，除非要添加整个项目级别的插件
+//
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    id 'com.android.application' version '9.1.0' apply false
+}

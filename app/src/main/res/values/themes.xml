@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.News" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/hn_orange</item>
+        <item name="colorPrimaryVariant">@color/hn_orange_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/hn_orange</item>
+        <item name="colorSecondaryVariant">@color/hn_orange_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/hn_orange</item>
+        <item name="android:windowBackground">@color/bg_secondary</item>
+    </style>
+
+    <!-- Card style for list items -->
+    <style name="NewsCardStyle">
+        <item name="android:background">@color/bg_card</item>
+        <item name="android:elevation">2dp</item>
+    </style>
+
+    <!-- Score badge style -->
+    <style name="ScoreBadgeStyle">
+        <item name="android:background">@color/score_badge_bg</item>
+        <item name="android:textColor">@color/score_badge_text</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

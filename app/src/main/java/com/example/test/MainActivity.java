@@ -1,0 +1,180 @@
+package com.example.test;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.test.adapter.NewsAdapter;
+import com.example.test.model.NewsItem;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+public class MainActivity extends AppCompatActivity {
+
+    private RecyclerView rvNews;
+    private TextView tvStatus;
+    private TextView tvCount;
+    private ProgressBar progressBar;
+    private Button btnLoad;
+
+    private NewsAdapter newsAdapter;
+    private OkHttpClient okHttpClient;
+    private Gson gson;
+
+    private static final String BASE_URL = "https://hacker-news.firebaseio.com/v0/";
+    private static final String TOPSTORIES_URL = BASE_URL + "topstories.json";
+    private static final String ITEM_URL = BASE_URL + "item/";
+    private static final int FETCH_COUNT = 10;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        rvNews = findViewById(R.id.rv_news);
+        tvStatus = findViewById(R.id.tv_status);
+        tvCount = findViewById(R.id.tv_count);
+        progressBar = findViewById(R.id.progress_bar);
+        btnLoad = findViewById(R.id.btn_load);
+
+        okHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+        gson = new Gson();
+
+        setupRecyclerView();
+
+        btnLoad.setOnClickListener(v -> loadNews());
+    }
+
+    private void setupRecyclerView() {
+        newsAdapter = new NewsAdapter(this, new ArrayList<>());
+        rvNews.setLayoutManager(new LinearLayoutManager(this));
+        rvNews.setAdapter(newsAdapter);
+    }
+
+    private void loadNews() {
+        tvStatus.setText("Fetching news list...");
+        progressBar.setVisibility(View.VISIBLE);
+        btnLoad.setEnabled(false);
+        btnLoad.setText("Loading...");
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<NewsItem> newsList = new ArrayList<>();
+                String errorMessage = null;
+
+                try {
+                    Request request = new Request.Builder()
+                            .url(TOPSTORIES_URL)
+                            .build();
+                    Response response = okHttpClient.newCall(request).execute();
+                    String idsJson = response.body().string();
+
+                    Type listType = new TypeToken<List<Integer>>() {}.getType();
+                    List<Integer> ids = gson.fromJson(idsJson, listType);
+
+                    int count = Math.min(FETCH_COUNT, ids.size());
+
+                    Random random = new Random();
+                    List<Integer> sampledIds = new ArrayList<>(count);
+                    for (int i = 0; i < count; i++) {
+                        sampledIds.add(ids.get(random.nextInt(ids.size())));
+                    }
+
+                    final List<NewsItem> syncList =
+                            java.util.Collections.synchronizedList(new ArrayList<NewsItem>());
+                    final CountDownLatch latch = new CountDownLatch(count);
+                    ExecutorService executor = Executors.newFixedThreadPool(count);
+
+                    postStatus("Loading " + sampledIds.size() + " stories in parallel...");
+
+                    for (int i = 0; i < count; i++) {
+                        final int newsId = sampledIds.get(i);
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    String itemUrl = ITEM_URL + newsId + ".json";
+                                    Request itemRequest = new Request.Builder()
+                                            .url(itemUrl)
+                                            .build();
+                                    Response itemResponse =
+                                            okHttpClient.newCall(itemRequest).execute();
+                                    String itemJson = itemResponse.body().string();
+                                    NewsItem news = gson.fromJson(itemJson, NewsItem.class);
+                                    syncList.add(news);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                } finally {
+                                    latch.countDown();
+                                }
+                            }
+                        });
+                    }
+
+                    latch.await();
+                    executor.shutdown();
+                    newsList.addAll(syncList);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    errorMessage = "Network error: " + e.getMessage();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    errorMessage = "Load failed: " + e.getMessage();
+                }
+
+                final List<NewsItem> finalNewsList = newsList;
+                final String finalError = errorMessage;
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressBar.setVisibility(View.GONE);
+                        btnLoad.setEnabled(true);
+                        btnLoad.setText("Load News");
+
+                        if (finalError != null) {
+                            tvStatus.setText(finalError);
+                        } else {
+                            tvCount.setText(String.valueOf(finalNewsList.size()));
+                            tvStatus.setText("Updated just now");
+                            newsAdapter.updateData(finalNewsList);
+                        }
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void postStatus(final String text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tvStatus.setText(text);
+            }
+        });
+    }
+}

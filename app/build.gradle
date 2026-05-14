@@ -1,0 +1,144 @@
+// ============================================================
+//  模块级 build.gradle（Module: app）—— 第4课重点文件
+// ============================================================
+//
+//  ═══════════════════════════════════════════════════════════
+//  本节课教学目标：学会在这里添加第三方库依赖
+//  ═══════════════════════════════════════════════════════════
+//
+//  这个文件控制 app 模块的编译行为，主要包括两大块：
+//
+//    ① android { ... }   —— 编译配置（SDK 版本、Java 版本等）
+//    ② dependencies { ... } —— 第三方依赖（★本节课重点★）
+//
+//
+//  ┌──────────────────────────────────────────────────────────┐
+//  │  dependencies 的作用是什么？                               │
+//  │                                                          │
+//  │  告诉 Gradle："我的项目需要用这些第三方库，请帮我下载"       │
+//  │                                                          │
+//  │  implementation '组:名:版本号'                            │
+//  │    ↓                                                     │
+//  │  Gradle 自动从 Maven 仓库下载对应的 .jar/.aar 文件         │
+//  │    ↓                                                     │
+//  │  自动配置编译路径，代码里就能 import 这些库的类             │
+//  └──────────────────────────────────────────────────────────┘
+//
+//
+//  ═══════════════════════════════════════════════════════════
+//  implementation 是什么意思？
+//  ═══════════════════════════════════════════════════════════
+//
+//  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+//  ┊              ┊                    ┊     ┊     ┊
+//  ┊              ┊                    ┊     ┊     └─ 版本号
+//  ┊              ┊                    ┊     └─────── 库名
+//  ┊              ┊                    └───────────── 组名（通常是公司反转域名）
+//  ┊              └────────────────────────────────── 依赖声明方式
+//  └─────────────────────────────────── 关键字
+//
+//  implementation 含义：
+//    - "我要用这个库"
+//    - Gradle 会把这个库下载下来，加入编译路径
+//    - 这个库的内部实现对外部模块不可见（和 api 的区别，以后再讲）
+//
+//
+//  ═══════════════════════════════════════════════════════════
+//  为什么添加依赖之后必须 Sync？
+//  ═══════════════════════════════════════════════════════════
+//
+//  写完 implementation 'xxx' 并不会立刻生效！
+//  必须点击 Android Studio 右上角的 "Sync Now" 按钮
+//
+//  Sync 之后 Gradle 会做什么：
+//    ① 解析 dependencies 里的每一行
+//    ② 去 Maven 仓库搜索对应的库
+//    ③ 下载 .jar / .aar 文件到本地缓存
+//    ④ 配置编译路径，让代码可以 import 这些类
+//    ⑤ 如果下载失败，会报错（网络问题、版本号写错等）
+//
+//  Sync 成功后，代码里的 import 语句才不会标红
+//
+//
+//  ═══════════════════════════════════════════════════════════
+//  本节课添加的三个第三方库
+//  ═══════════════════════════════════════════════════════════
+//
+//  ① OkHttp  —— 网络请求库
+//     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+//     替代上节课的 HttpURLConnection，代码更简洁，功能更强大
+//
+//  ② Gson    —— JSON 解析库
+//     implementation 'com.google.code.gson:gson:2.11.0'
+//     替代上节课手动用 JSONObject 一个字段一个字段取的写法
+//     自动把 JSON 字符串映射成 Java 对象
+//
+//  ③ Glide   —— 图片加载库
+//     implementation 'com.github.bumptech.glide:glide:4.16.0'
+//     只需一行代码就能从网络加载图片到 ImageView
+//     Hacker News 主要是文字新闻，图片加载作为教学演示
+//
+
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.test'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.example.test"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles(
+                getDefaultProguardFile('proguard-android-optimize.txt'),
+                'proguard-rules.pro'
+            )
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    // ── AndroidX 基础库（项目创建时自带）──────────────────────
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0'
+
+    // ── 【本节课新增】第三方库 ────────────────────────────────
+
+    // ① OkHttp：网络请求库
+    //    替代 HttpURLConnection，代码更简洁
+    //    例：原来 7 行代码的 httpGet()，用 OkHttp 只需 3 行
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // ② Gson：JSON 解析库
+    //    替代手动 JSONObject.optString("title") 一个个取字段
+    //    自动把 JSON 字符串映射成 Java 对象
+    //    例：NewsItem news = gson.fromJson(json, NewsItem.class)  一行搞定
+    implementation 'com.google.code.gson:gson:2.11.0'
+
+    // ③ Glide：图片加载库
+    //    一行代码从网络加载图片到 ImageView
+    //    自动处理：网络请求、缓存、占位图、图片缩放
+    //    例：Glide.with(context).load(url).into(imageView)
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+
+    // ── 测试库（项目创建时自带，不用改）──────────────────────
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
